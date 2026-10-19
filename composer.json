@@ -1,0 +1,52 @@
+{
+    "name": "furybee/laravel-migration-radar",
+    "description": "Catch dangerous database migrations before they reach production, aware of your table sizes and database version.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "migrations",
+        "laravel",
+        "mysql",
+        "postgresql",
+        "zero-downtime",
+        "static-analysis"
+    ],
+    "require": {
+        "php": ">=8.2",
+        "ext-mbstring": "*",
+        "nikic/php-parser": "^5.0",
+        "symfony/console": "^6.4 || ^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^11.5"
+    },
+    "suggest": {
+        "ext-pdo": "Read table sizes and the server version from the database (--dsn)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Furybee\\MigrationRadar\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Furybee\\MigrationRadar\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/migration-radar"
+    ],
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --memory-limit=1G"
+    }
+}

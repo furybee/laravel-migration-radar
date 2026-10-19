@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (PHP ${{ matrix.php }}${{ matrix.dependencies == 'lowest' && ', lowest dependencies' || '' }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        dependencies: [highest]
+        include:
+          - php: '8.2'
+            dependencies: lowest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer update --no-interaction --no-progress --prefer-dist ${{ matrix.dependencies == 'lowest' && '--prefer-lowest --prefer-stable' || '' }}
+      - run: vendor/bin/phpunit --testsuite unit
+
+  integration:
+    name: Integration (git, MySQL, PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: radar
+          MYSQL_DATABASE: radar
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -pradar" --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: radar
+          POSTGRES_DB: radar
+        ports: ['5432:5432']
+        options: --health-cmd=pg_isready --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      MIGRATION_RADAR_TEST_MYSQL_URL: mysql://root:radar@127.0.0.1:3306/radar
+      MIGRATION_RADAR_TEST_PGSQL_URL: pgsql://postgres:radar@127.0.0.1:5432/radar
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, pdo_pgsql
+          coverage: none
+      - run: composer update --no-interaction --no-progress --prefer-dist
+      - run: vendor/bin/phpunit --testsuite integration --fail-on-skipped
+
+  static-analysis:
+    name: PHPStan and architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer update --no-interaction --no-progress --prefer-dist
+      - run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+      - name: Layer dependencies (furybee/php-deps)
+        run: |
+          git clone --depth 1 https://github.com/furybee/php-deps.git /tmp/php-deps
+          composer install --working-dir=/tmp/php-deps --no-interaction --no-progress --no-dev
+          php /tmp/php-deps/analyze.php --check --format=github --quiet

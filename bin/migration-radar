@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$autoloadCandidates = [
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+];
+
+$autoload = array_values(array_filter($autoloadCandidates, 'file_exists'))[0] ?? null;
+if ($autoload === null) {
+    fwrite(STDERR, "Error: run composer install first.\n");
+    exit(1);
+}
+require $autoload;
+
+exit((new Furybee\MigrationRadar\Console\MigrationRadarApplication((string) getcwd()))->run());
