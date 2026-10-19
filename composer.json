@@ -1,5 +1,5 @@
 {
-    "name": "furybee/php-migration-radar",
+    "name": "furybee/laravel-migration-radar",
     "description": "Catch dangerous database migrations before they reach production, aware of your table sizes and database version.",
     "type": "library",
     "license": "MIT",

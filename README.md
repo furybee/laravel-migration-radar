@@ -1,10 +1,10 @@
 <div align="center">
 
-# PHP Migration Radar
+# Laravel Migration Radar
 
 **Catch dangerous database migrations before they reach production — aware of your table sizes and database version.**
 
-[![CI](https://github.com/furybee/php-migration-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/furybee/php-migration-radar/actions/workflows/ci.yml)
+[![CI](https://github.com/furybee/laravel-migration-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/furybee/laravel-migration-radar/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-8892BF.svg)](https://www.php.net)
 
@@ -42,7 +42,7 @@ database/migrations/2026_01_02_000000_drop_users_legacy_column.php
 ## Installation
 
 ```bash
-composer require --dev furybee/php-migration-radar
+composer require --dev furybee/laravel-migration-radar
 ```
 
 Requires PHP 8.2+. Supports MySQL, MariaDB and PostgreSQL migrations written with Laravel's schema builder.
