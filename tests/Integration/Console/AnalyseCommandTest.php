@@ -60,6 +60,14 @@ final class AnalyseCommandTest extends TestCase
         $this->assertSame(Command::INVALID, $tester->execute(['--dsn' => 'mysql://127.0.0.1:1/nothing']));
     }
 
+    public function testReportsTheVersionComposerInstalled(): void
+    {
+        $version = (new MigrationRadarApplication(self::PROJECT))->getVersion();
+
+        $this->assertNotSame('unknown', $version);
+        $this->assertNotSame('0.1.0', $version);
+    }
+
     public function testListsTheRules(): void
     {
         $tester = new CommandTester((new MigrationRadarApplication(self::PROJECT))->find('rules'));
