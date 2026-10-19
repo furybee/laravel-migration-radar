@@ -26,8 +26,9 @@ final readonly class GitChangedFiles implements ChangedFiles
             throw new ChangedFilesUnavailable("Invalid git reference \"{$reference}\"");
         }
 
-        // Compares the working tree with the merge base: committed and uncommitted changes of the branch
-        $tracked = $this->git(['diff', '--name-only', '--diff-filter=AMR', '--relative', '--merge-base', $reference]);
+        // The working tree against the merge base: committed and uncommitted changes of the branch
+        $mergeBase = $this->git(['merge-base', $reference, 'HEAD'])[0] ?? throw new ChangedFilesUnavailable("No common ancestor with {$reference}");
+        $tracked = $this->git(['diff', '--name-only', '--diff-filter=AMR', '--relative', $mergeBase]);
         $untracked = $this->git(['ls-files', '--others', '--exclude-standard']);
 
         return array_values(array_unique([...$tracked, ...$untracked]));

@@ -18,5 +18,8 @@ return new class extends Migration {
 
         // a regular comment
         Schema::drop('sessions');
+
+        Schema::drop('caches'); // migration-radar-ignore drop-table -- trailing
+        Schema::drop('jobs');
     }
 };

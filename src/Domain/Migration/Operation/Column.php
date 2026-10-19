@@ -18,6 +18,8 @@ final readonly class Column
         /** Stored generated column (`storedAs()`), computed for every existing row */
         public bool $isStoredGenerated = false,
         public bool $isAutoIncrement = false,
+        /** Virtual generated column (`virtualAs()`), computed on read */
+        public bool $isVirtualGenerated = false,
     ) {
     }
 
@@ -26,6 +28,6 @@ final readonly class Column
      */
     public function isFilledAutomatically(): bool
     {
-        return $this->isNullable || $this->hasDefault || $this->isAutoIncrement || $this->isStoredGenerated;
+        return $this->isNullable || $this->hasDefault || $this->isAutoIncrement || $this->isStoredGenerated || $this->isVirtualGenerated;
     }
 }

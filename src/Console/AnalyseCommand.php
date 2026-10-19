@@ -51,11 +51,13 @@ final class AnalyseCommand extends Command
             $configuration = $this->configuration($input);
 
             $selection = $this->services->selectMigrations();
-            $since = self::stringOption($input, 'since');
-            $files = $since === null ? $selection->all($configuration->paths) : $selection->changedSince($configuration->paths, $since);
-
             $context = $this->services->buildDatabaseContext($configuration)->build($configuration);
-            $report = $this->services->analyseMigrations($configuration)->analyse($files, $context);
+            $analyse = $this->services->analyseMigrations($configuration);
+
+            $since = self::stringOption($input, 'since');
+            $report = $since === null
+                ? $analyse->analyse($selection->all($configuration->paths), $context)
+                : $analyse->analyseUnreleased($selection->changedSince($configuration->paths, $since), $context);
         } catch (InvalidConfiguration | InvalidPlatform | DatabaseUnreachable | ChangedFilesUnavailable $e) {
             $errorOutput->writeln("<error>{$e->getMessage()}</error>");
 

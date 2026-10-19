@@ -9,8 +9,9 @@ use PhpParser\Node;
 use PhpParser\NodeFinder;
 
 /**
- * Reads `// migration-radar-ignore rule-a, rule-b -- reason` comments.
- * A comment covers the statement it precedes, closures included; without rule ids it covers every rule.
+ * Reads `// migration-radar-ignore rule-a, rule-b -- reason` comments; without rule ids they cover every rule.
+ * On its own line, a comment covers the statement it precedes, closures included.
+ * After code, it only covers its own line: php-parser attaches it to the next statement, which it must not hide.
  */
 final class SuppressionCollector
 {
@@ -20,19 +21,30 @@ final class SuppressionCollector
      * @param array<Node> $ast
      * @return list<Suppression>
      */
-    public function collect(array $ast): array
+    public function collect(array $ast, string $code): array
     {
         $suppressions = [];
         foreach ((new NodeFinder())->findInstanceOf($ast, Node\Stmt::class) as $statement) {
             foreach ($statement->getComments() as $comment) {
                 $ruleIds = self::ruleIds($comment->getText());
-                if ($ruleIds !== null) {
-                    $suppressions[] = new Suppression($comment->getStartLine(), $statement->getEndLine(), $ruleIds);
+                if ($ruleIds === null) {
+                    continue;
                 }
+
+                $lastLine = self::followsCode($code, $comment->getStartFilePos()) ? $comment->getStartLine() : $statement->getEndLine();
+                $suppressions[] = new Suppression($comment->getStartLine(), $lastLine, $ruleIds);
             }
         }
 
-        return $suppressions;
+        return array_values(array_unique($suppressions, SORT_REGULAR));
+    }
+
+    private static function followsCode(string $code, int $commentPosition): bool
+    {
+        $lineStart = strrpos(substr($code, 0, $commentPosition), "\n");
+        $before = substr($code, $lineStart === false ? 0 : $lineStart + 1, $commentPosition - ($lineStart === false ? 0 : $lineStart + 1));
+
+        return trim($before) !== '';
     }
 
     /**

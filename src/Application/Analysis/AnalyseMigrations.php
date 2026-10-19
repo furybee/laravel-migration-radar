@@ -20,9 +20,30 @@ final readonly class AnalyseMigrations
     }
 
     /**
+     * Migrations analysed one by one, as if each was the next to run in production.
+     *
      * @param list<string> $files
      */
     public function analyse(array $files, DatabaseContext $context): AnalysisReport
+    {
+        return $this->run($files, $context, carriesNewTables: false);
+    }
+
+    /**
+     * Migrations that have not run in production yet, in execution order: a table one of them creates
+     * is new, so empty and unused, for the ones after it.
+     *
+     * @param list<string> $files
+     */
+    public function analyseUnreleased(array $files, DatabaseContext $context): AnalysisReport
+    {
+        return $this->run($files, $context, carriesNewTables: true);
+    }
+
+    /**
+     * @param list<string> $files
+     */
+    private function run(array $files, DatabaseContext $context, bool $carriesNewTables): AnalysisReport
     {
         $issues = [];
         $unparsable = [];
@@ -36,7 +57,12 @@ final readonly class AnalyseMigrations
                 continue;
             }
 
-            foreach ($this->issuesOf($migration, $context) as $issue) {
+            $migrationContext = $context;
+            if ($carriesNewTables) {
+                $context = $context->withNewTables($migration->newTablesAfter($context->newTables));
+            }
+
+            foreach ($this->issuesOf($migration, $migrationContext) as $issue) {
                 if ($this->isSuppressed($migration, $issue)) {
                     $suppressed++;
                     continue;

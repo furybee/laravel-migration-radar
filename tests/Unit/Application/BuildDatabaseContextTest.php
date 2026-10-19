@@ -25,6 +25,24 @@ final class BuildDatabaseContextTest extends TestCase
         $this->assertFalse($context->assumeLargeWhenUnknown);
     }
 
+    public function testKeepsPresumingLargeATableMissingFromTheStatistics(): void
+    {
+        $inspector = new InMemoryDatabaseInspector(Platform::fromString('mysql:8.0.39'), ['app_users' => 5_000_000]);
+
+        $context = (new BuildDatabaseContext($inspector))->build(new Configuration());
+
+        $this->assertTrue($context->isLargeTable('users'), 'A forgotten table prefix must not silence the lock rules');
+    }
+
+    public function testStripsTheTablePrefix(): void
+    {
+        $inspector = new InMemoryDatabaseInspector(Platform::fromString('pgsql:16'), ['app_users' => 7, 'other_logs' => 3]);
+
+        $context = (new BuildDatabaseContext($inspector))->build(new Configuration(tablePrefix: 'app_'));
+
+        $this->assertSame(['users' => 7], $context->tableRows);
+    }
+
     public function testLetsTheConfigurationWin(): void
     {
         $inspector = new InMemoryDatabaseInspector(Platform::fromString('mysql:8.0.39'), ['users' => 10, 'logs' => 3]);

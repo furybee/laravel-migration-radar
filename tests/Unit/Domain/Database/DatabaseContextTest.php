@@ -24,6 +24,14 @@ final class DatabaseContextTest extends TestCase
         $this->assertFalse((new DatabaseContext(Platform::unknown(), assumeLargeWhenUnknown: false))->isLargeTable('users'));
     }
 
+    public function testNeverConsidersANewTableLarge(): void
+    {
+        $context = (new DatabaseContext(Platform::unknown(), ['users' => 5_000_000]))->withNewTables(['users']);
+
+        $this->assertFalse($context->isLargeTable('users'));
+        $this->assertTrue($context->isNewTable('users'));
+    }
+
     public function testDescribesTheTableSizeWhenKnown(): void
     {
         $context = new DatabaseContext(Platform::unknown(), ['users' => 1_234_567]);

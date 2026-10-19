@@ -62,7 +62,7 @@ final readonly class LaravelMigrationParser implements MigrationParser
         return new Migration(
             $path,
             $interpreter->interpret($up->stmts ?? []),
-            (new SuppressionCollector())->collect($ast),
+            (new SuppressionCollector())->collect($ast, $code),
         );
     }
 

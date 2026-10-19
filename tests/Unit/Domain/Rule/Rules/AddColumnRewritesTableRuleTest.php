@@ -39,7 +39,12 @@ final class AddColumnRewritesTableRuleTest extends TestCase
         yield 'PostgreSQL without default never rewrites' => ['pgsql:9.6', $appended, null];
         yield 'stored generated column always computes every row' => ['mysql:8.4', new Column('total', 'integer', isStoredGenerated: true), Severity::Error];
         yield 'stored generated column on unknown platform is a warning' => ['unknown', new Column('total', 'integer', isStoredGenerated: true), Severity::Warning];
-        yield 'unknown platform otherwise says nothing' => ['unknown', $positioned, null];
+        yield 'unknown platform warns about a placed column' => ['unknown', $positioned, Severity::Warning];
+        yield 'unknown platform warns about an expression default' => ['unknown', $withExpressionDefault, Severity::Warning];
+        yield 'unknown platform accepts an appended column' => ['unknown', $appended, null];
+        yield 'MySQL blocks writes to number an auto-increment column' => ['mysql:8.4', new Column('seq', 'bigIncrements', isAutoIncrement: true), Severity::Error];
+        yield 'PostgreSQL rewrites the table for a serial column' => ['pgsql:16', new Column('seq', 'bigIncrements', isAutoIncrement: true), Severity::Error];
+        yield 'auto-increment on unknown platform is a warning' => ['unknown', new Column('seq', 'increments', isAutoIncrement: true), Severity::Warning];
         yield 'SQLite is ignored' => ['sqlite', $positioned, null];
     }
 

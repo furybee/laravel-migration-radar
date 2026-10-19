@@ -26,7 +26,7 @@ final readonly class DropColumnRule implements Rule
     public function check(Migration $migration, DatabaseContext $context): array
     {
         $issues = [];
-        foreach ($migration->operationsOnExistingTables() as $operation) {
+        foreach ($migration->operationsOnExistingTables($context) as $operation) {
             if (!$operation instanceof DropColumn) {
                 continue;
             }

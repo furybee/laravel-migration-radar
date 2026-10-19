@@ -28,7 +28,7 @@ final class ChangeColumnRuleTest extends TestCase
     {
         $issues = (new ChangeColumnRule())->check($this->changing(Contexts::LARGE_TABLE), Contexts::on('pgsql:16'));
 
-        $this->assertStringContainsString('NOT VALID', IssueAssertions::assertSingleIssue($issues, Severity::Error, 4)->recommendation);
+        $this->assertStringContainsString('PostgreSQL 12+', IssueAssertions::assertSingleIssue($issues, Severity::Error, 4)->recommendation);
     }
 
     public function testDowngradesToAWarningOnAnUnknownPlatform(): void

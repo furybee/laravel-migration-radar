@@ -14,7 +14,7 @@ final readonly class PhpConfigurationLoader
 {
     public const DEFAULT_FILE = 'migration-radar.php';
 
-    private const KEYS = ['paths', 'platform', 'dsn', 'large_table_rows', 'assume_large_tables', 'table_rows', 'disabled_rules', 'ignore'];
+    private const KEYS = ['paths', 'platform', 'dsn', 'large_table_rows', 'assume_large_tables', 'table_rows', 'table_prefix', 'disabled_rules', 'ignore'];
 
     public function load(string $file): Configuration
     {
@@ -43,6 +43,7 @@ final readonly class PhpConfigurationLoader
             tableRows: self::tableRows($values['table_rows'] ?? []),
             disabledRules: self::strings($values['disabled_rules'] ?? [], 'disabled_rules'),
             ignoredPaths: self::ignoredPaths($values['ignore'] ?? []),
+            tablePrefix: self::nullableString($values['table_prefix'] ?? null, 'table_prefix') ?? '',
         );
     }
 

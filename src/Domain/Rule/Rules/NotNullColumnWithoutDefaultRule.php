@@ -29,7 +29,7 @@ final readonly class NotNullColumnWithoutDefaultRule implements Rule
     public function check(Migration $migration, DatabaseContext $context): array
     {
         $issues = [];
-        foreach ($migration->operationsOnExistingTables() as $operation) {
+        foreach ($migration->operationsOnExistingTables($context) as $operation) {
             if (!$operation instanceof AddColumn || $operation->column->isFilledAutomatically()) {
                 continue;
             }

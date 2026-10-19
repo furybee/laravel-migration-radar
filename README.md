@@ -69,7 +69,7 @@ vendor/bin/migration-radar rules
 | Option | Default | |
 |--------|---------|---|
 | `paths` (arguments) | `database/migrations` | Migration files or directories |
-| `--since=REF` | | Only migrations added or modified since this git reference, committed or not |
+| `--since=REF` | | Only migrations added or modified since this git reference, committed or not. Tables they create are new for the migrations after them |
 | `--platform=P` | | `mysql:8.0.35`, `mariadb:10.11`, `pgsql:16`... wins over what the database reports |
 | `--dsn=URL` | `MIGRATION_RADAR_DSN` | `mysql://`, `pgsql://` or `sqlite://` URL to read the version and table sizes |
 | `--format=F` | `text` | `text`, `json`, `github` (annotations), `gitlab` (Code Quality report) |
@@ -82,8 +82,10 @@ unreachable database, unknown git reference).
 ### Without database access
 
 Give the platform with its full version and, optionally, the size of your big tables. Without any of this,
-Migration Radar assumes an old version and large tables: it reports more than needed rather than missing an outage,
-and tells you so in a hint.
+Migration Radar presumes every table large and only reports the risks shared by all engines (with an unknown engine,
+engine specific errors become warnings): it reports more than needed rather than missing an outage, and tells you
+so in a hint. A table missing from the database statistics stays presumed large: set `table_prefix` if Laravel
+prefixes your tables, or the statistics will not match.
 
 ```php
 // migration-radar.php
@@ -100,7 +102,7 @@ return [
 | Rule | Severity | Reports |
 |------|----------|---------|
 | `not-null-column-without-default` | error | A NOT NULL column without default added to an existing table: inserts from the code still deployed fail, PostgreSQL rejects it on a non-empty table |
-| `add-column-rewrites-table` | error / warning | A column whose addition rebuilds a large table: MySQL < 8.0.12 (8.0.29 with `after()`), MariaDB < 10.3.2 (10.4 with `after()`), PostgreSQL < 11 with a default, volatile expression defaults, stored generated columns |
+| `add-column-rewrites-table` | error / warning | A column whose addition rebuilds a large table: MySQL < 8.0.12 (8.0.29 with `after()`), MariaDB < 10.3.2 (10.4 with `after()`), PostgreSQL < 11 with a default, volatile expression defaults, stored generated and auto-increment columns |
 | `change-column` | error | `->change()` on a large table: copies (MySQL) or rewrites (PostgreSQL) it for most changes |
 | `rename-column` | error | Renaming a column the deployed code still uses |
 | `rename-table` | error | Renaming a table the deployed code still uses |
@@ -112,7 +114,7 @@ return [
 | `raw-sql` | info | `DB::statement()` / `DB::unprepared()`, which cannot be analysed |
 
 On an unknown platform, errors that depend on the engine are reported as warnings. Operations on a table created by
-the same migration are never reported: it is empty.
+the same migration, or by an earlier migration of the branch with `--since`, are never reported: it is empty.
 
 Every issue comes with a recommendation: expand/contract steps, `CREATE INDEX CONCURRENTLY`, `NOT VALID` constraints,
 online schema change tools (gh-ost, pt-online-schema-change).
@@ -128,8 +130,9 @@ Schema::table('users', function (Blueprint $table) {
 });
 ```
 
-Without rule ids the comment ignores every rule for that statement. In the configuration, `ignore` maps path globs to
-rule ids (`*` for all), and `disabled_rules` turns rules off.
+On its own line, the comment covers the next statement, closure included. At the end of a line, it only covers that
+line. Without rule ids it ignores every rule. In the configuration, `ignore` maps path globs to rule ids (`*` for all),
+and `disabled_rules` turns rules off.
 
 ## Configuration
 
@@ -143,6 +146,7 @@ rule ids (`*` for all), and `disabled_rules` turns rules off.
 | `large_table_rows` | `1_000_000` | Rows from which a table is large |
 | `assume_large_tables` | `true` | Whether a table without statistics is presumed large |
 | `table_rows` | `[]` | Row estimates per table, wins over the database statistics |
+| `table_prefix` | `''` | Laravel's table prefix, stripped from the names the database reports |
 | `disabled_rules` | `[]` | Rule ids turned off |
 | `ignore` | `[]` | Path glob => rule ids |
 
@@ -182,8 +186,14 @@ Migrations are parsed, never executed. The `up()` method is read with [nikic/php
 foreign keys, drops, renames), `DB::statement()` and data writes (`DB::table()->update()`, Eloquent `update()`,
 `chunkById()`...). Table names given as literals, class constants or concatenations are resolved.
 
-Limits: a table name only known at runtime shows as `(dynamic)` and is presumed large (unless `assume_large_tables` is off); operations hidden in helper
-methods or traits are not followed; raw SQL is reported, not analysed.
+Limits:
+
+- A table name only known at runtime shows as `(dynamic)` and is presumed large (unless `assume_large_tables` is off).
+- Operations hidden in helper methods or traits are not followed; raw SQL is reported, not analysed.
+- Blueprint macros are not known: they are ignored rather than guessed.
+- Instant `ADD COLUMN` on MySQL 8.0.29+ still rebuilds tables with a FULLTEXT index, `ROW_FORMAT=COMPRESSED`, or 64
+  instant changes behind them: the schema does not tell, so these cases are not reported.
+- Requires nikic/php-parser 5: a Laravel app still locked on php-parser 4 (old psysh) needs `composer update psy/psysh`.
 
 ## Development
 

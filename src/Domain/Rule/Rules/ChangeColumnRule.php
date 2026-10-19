@@ -35,7 +35,7 @@ final readonly class ChangeColumnRule implements Rule
         }
 
         $issues = [];
-        foreach ($migration->operationsOnExistingTables() as $operation) {
+        foreach ($migration->operationsOnExistingTables($context) as $operation) {
             if (!$operation instanceof ChangeColumn || !$context->isLargeTable($operation->tableName)) {
                 continue;
             }
@@ -46,12 +46,12 @@ final readonly class ChangeColumnRule implements Rule
                 Severity::Error->onPlatformKnown($platform->isKnown()),
                 "Changing column \"{$operation->column->name}\" of {$context->describeTableSize($operation->tableName)} "
                     . ($isPostgreSql
-                        ? 'rewrites or scans the whole table under an exclusive lock for most changes (type, NOT NULL).'
-                        : 'copies the whole table while blocking writes for most changes (type, NOT NULL, charset).'),
+                        ? 'rewrites the whole table under an exclusive lock when the type changes, and scans it when it becomes NOT NULL.'
+                        : 'copies the whole table while blocking writes when the type or charset changes, and rebuilds it when it becomes NOT NULL.'),
                 $isPostgreSql
-                    ? 'Add a new column, backfill it in batches and switch the code to it; to make a column NOT NULL, '
-                        . 'add a CHECK (column IS NOT NULL) NOT VALID constraint, validate it, then set NOT NULL.'
-                    : 'Run it with an online schema change tool (gh-ost, pt-online-schema-change), '
+                    ? 'Add a new column, backfill it in batches and switch the code to it. To make a column NOT NULL on PostgreSQL 12+, '
+                        . 'add a CHECK (column IS NOT NULL) NOT VALID constraint, validate it, then set NOT NULL: no scan under lock.'
+                    : 'Run it with an online schema change tool (pt-online-schema-change, or gh-ost when the table has no foreign keys), '
                         . 'or add a new column, backfill it in batches and switch the code to it.',
                 $migration->path,
                 $operation->line,

@@ -36,7 +36,7 @@ final readonly class AddForeignKeyLocksTableRule implements Rule
         }
 
         $issues = [];
-        foreach ($migration->operationsOnExistingTables() as $operation) {
+        foreach ($migration->operationsOnExistingTables($context) as $operation) {
             if (!$operation instanceof AddForeignKey || !$context->isLargeTable($operation->tableName)) {
                 continue;
             }
@@ -50,9 +50,14 @@ final readonly class AddForeignKeyLocksTableRule implements Rule
                     Driver::MySql, Driver::MariaDb => 'copies the whole table while blocking writes (foreign_key_checks forces ALGORITHM=COPY)',
                     default => 'validates every existing row while locking the table',
                 }),
-                $driver === Driver::PostgreSql
-                    ? 'Add the constraint with NOT VALID (DB::statement), then run VALIDATE CONSTRAINT in a separate migration: it does not block writes.'
-                    : 'Run it with an online schema change tool (gh-ost, pt-online-schema-change), or declare the foreign key when creating the table.',
+                match ($driver) {
+                    Driver::PostgreSql => 'Add the constraint with NOT VALID (DB::statement), then run VALIDATE CONSTRAINT in a separate migration: it does not block writes.',
+                    Driver::MySql, Driver::MariaDb => 'Add it between Schema::disableForeignKeyConstraints() and Schema::enableForeignKeyConstraints(): '
+                        . 'the table is then altered in place without copy, but existing rows are not checked, so verify them first. '
+                        . 'Or use pt-online-schema-change (gh-ost does not support foreign keys).',
+                    default => 'On MySQL, add it with foreign key checks disabled after verifying existing rows; '
+                        . 'on PostgreSQL, add it NOT VALID then VALIDATE CONSTRAINT separately.',
+                },
                 $migration->path,
                 $operation->line,
             );

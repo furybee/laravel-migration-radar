@@ -23,6 +23,8 @@ final class AddForeignKeyLocksTableRuleTest extends TestCase
         $issue = IssueAssertions::assertSingleIssue($issues, Severity::Error, 6);
         $this->assertStringContainsString('ALGORITHM=COPY', $issue->message);
         $this->assertStringContainsString('referencing "companies"', $issue->message);
+        $this->assertStringContainsString('Schema::disableForeignKeyConstraints()', $issue->recommendation);
+        $this->assertStringContainsString('gh-ost does not support foreign keys', $issue->recommendation);
     }
 
     public function testRecommendsNotValidOnPostgreSql(): void

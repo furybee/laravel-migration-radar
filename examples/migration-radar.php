@@ -25,6 +25,9 @@ return [
         'audit_logs' => 120_000_000,
     ],
 
+    // Laravel's table prefix (database.connections.*.prefix), stripped from the names the database reports
+    'table_prefix' => '',
+
     // Rules turned off, see `vendor/bin/migration-radar rules`
     'disabled_rules' => [],
 

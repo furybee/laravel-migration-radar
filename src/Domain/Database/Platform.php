@@ -34,7 +34,11 @@ final readonly class Platform
             throw new InvalidPlatform("Unknown database platform \"{$platform}\", expected mysql, mariadb, pgsql or sqlite");
         }
 
-        return new self($driver, $version === null || $version === '' ? null : self::normalizeVersion($version));
+        if ($version !== null && $version !== '' && preg_match('/^\d+(\.\d+){0,2}$/', $version) !== 1) {
+            throw new InvalidPlatform("Invalid version in \"{$platform}\", expected e.g. mysql:8.0.35");
+        }
+
+        return new self($driver, $version === null || $version === '' ? null : $version);
     }
 
     /**

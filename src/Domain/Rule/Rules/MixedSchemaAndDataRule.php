@@ -28,7 +28,7 @@ final readonly class MixedSchemaAndDataRule implements Rule
 
     public function check(Migration $migration, DatabaseContext $context): array
     {
-        $dataChanges = $migration->dataChanges();
+        $dataChanges = $migration->dataChangesOnExistingTables($context);
         if ($dataChanges === [] || !$migration->changesSchema()) {
             return [];
         }

@@ -10,6 +10,8 @@ use Furybee\MigrationRadar\Application\Analysis\RuleSet;
 use Furybee\MigrationRadar\Domain\Database\DatabaseContext;
 use Furybee\MigrationRadar\Domain\Database\Platform;
 use Furybee\MigrationRadar\Domain\Migration\Migration;
+use Furybee\MigrationRadar\Domain\Migration\Operation\AddForeignKey;
+use Furybee\MigrationRadar\Domain\Migration\Operation\CreateTable;
 use Furybee\MigrationRadar\Domain\Migration\Operation\DropColumn;
 use Furybee\MigrationRadar\Domain\Migration\Operation\RenameColumn;
 use Furybee\MigrationRadar\Domain\Migration\Suppression;
@@ -59,6 +61,23 @@ final class AnalyseMigrationsTest extends TestCase
 
         $this->assertSame([self::FIRST . ': syntax error'], $report->unparsableFiles);
         $this->assertCount(1, $report->issues);
+    }
+
+    public function testTreatsTablesCreatedEarlierInTheBranchAsNew(): void
+    {
+        $parser = (new InMemoryMigrationParser())
+            ->add(new Migration(self::FIRST, [new CreateTable('invoices', 3)]))
+            ->add(new Migration(self::SECOND, [
+                new AddForeignKey('invoices', ['user_id'], 'users', 4),
+                new AddForeignKey('orders', ['user_id'], 'users', 5),
+            ]));
+        $analyse = new AnalyseMigrations($parser, RuleSet::default());
+
+        $unreleased = $analyse->analyseUnreleased([self::FIRST, self::SECOND], $this->context());
+        $released = $analyse->analyse([self::FIRST, self::SECOND], $this->context());
+
+        $this->assertSame([5], array_map(static fn($issue) => $issue->line, $unreleased->issues));
+        $this->assertSame([4, 5], array_map(static fn($issue) => $issue->line, $released->issues));
     }
 
     private function context(): DatabaseContext

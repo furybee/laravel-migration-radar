@@ -37,6 +37,7 @@ final class PhpConfigurationLoaderTest extends TestCase
                 'table_rows' => ['users' => 2_000_000],
                 'disabled_rules' => ['raw-sql'],
                 'ignore' => ['database/migrations/2019_*' => ['*']],
+                'table_prefix' => 'app_',
             ]
             PHP);
 
@@ -49,6 +50,7 @@ final class PhpConfigurationLoaderTest extends TestCase
             ['users' => 2_000_000],
             ['raw-sql'],
             ['database/migrations/2019_*' => ['*']],
+            'app_',
         ), (new PhpConfigurationLoader())->load($file));
     }
 

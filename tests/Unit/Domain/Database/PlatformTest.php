@@ -32,11 +32,16 @@ final class PlatformTest extends TestCase
         $this->assertSame($version, $platform->version);
     }
 
-    public function testRejectsUnknownDatabases(): void
+    public function testRejectsUnknownDatabasesAndMalformedVersions(): void
     {
-        $this->expectException(InvalidPlatform::class);
-
-        Platform::fromString('oracle:19');
+        foreach (['oracle:19', 'pgsql:16 --since=HEAD', 'mysql:latest'] as $invalid) {
+            try {
+                Platform::fromString($invalid);
+                $this->fail("{$invalid} should be rejected");
+            } catch (InvalidPlatform) {
+                $this->addToAssertionCount(1);
+            }
+        }
     }
 
     /**

@@ -109,6 +109,28 @@ final class LaravelMigrationParserTest extends TestCase
         ], $migration->operations);
     }
 
+    public function testReadsNestedSchemaCallsGroupsAndBlueprintHelpers(): void
+    {
+        $migration = $this->parser->parse('migrations/blueprint_edge_cases.php');
+
+        $this->assertEquals([
+            new DropColumn('users', 'legacy', 14),
+            new RawStatement('UPDATE users SET legacy = NULL', 15),
+            new AddColumn('users', new Column('nick', 'string', isNullable: true, isPositioned: true), 21),
+            new AddIndex('users', IndexType::Index, ['(lower(email))'], 23),
+            new AddColumn('users', new Column('total', 'integer', isVirtualGenerated: true), 24),
+            new AddColumn('users', new Column('uuid', 'uuid', isNullable: true), 25),
+            new AddColumn('users', new Column('owner_team_id', 'foreignIdFor', isNullable: true), 26),
+            new AddColumn('users', new Column('sequence', 'bigIncrements', isAutoIncrement: true), 27),
+            new AddIndex('users', IndexType::Primary, ['sequence'], 27),
+            new RenameTable('users', 'members', 29),
+            new DropColumn('posts', 'draft', 34),
+            new DropColumn('posts', 'legacy', 37),
+            new RawStatement('VACUUM', 41),
+            new DataChange('stats', "DB::table('stats')->delete()", 42),
+        ], $migration->operations);
+    }
+
     public function testReadsIgnoreComments(): void
     {
         $migration = $this->parser->parse('migrations/suppressed.php');
@@ -116,7 +138,10 @@ final class LaravelMigrationParserTest extends TestCase
         $this->assertEquals([
             new Suppression(10, 14, ['rename-column', 'drop-column']),
             new Suppression(16, 17, [Suppression::ALL_RULES]),
+            new Suppression(22, 22, ['drop-table']),
         ], $migration->suppressions);
+        $this->assertTrue($migration->isSuppressed('drop-table', 22));
+        $this->assertFalse($migration->isSuppressed('drop-table', 23), 'A trailing comment must not hide the next statement');
     }
 
     public function testReadsNamedMigrationClasses(): void
